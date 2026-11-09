@@ -95,7 +95,9 @@ export async function getExaminationLibraryPublish(request, response) {
 
 	// Guard: in-progress category cannot be published if there are no published documents
 	if ((!categoryStatus || categoryStatus === 'in progress') && totalPublishedCount === 0) {
-		const sectionData = await getExaminationLibrarySectionData(caseId, itemSlug, request.query);
+		const sectionData = await getExaminationLibrarySectionData(caseId, itemSlug, request.query, {
+			categoriesResponse
+		});
 		if (!sectionData) {
 			return response.status(404).render('app/404');
 		}

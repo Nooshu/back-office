@@ -26,6 +26,7 @@ import { url } from '../../../lib/nunjucks-filters/index.js';
  * @param {number} caseId
  * @param {string} itemSlug
  * @param {Record<string, any>} [query={}]
+ * @param {{ categoriesResponse?: any[], documentsResponse?: any }} [prefetchedData={}]
  * @returns {Promise<{
  *   sectionViewModel: any,
  *   documentsResponse: any,
@@ -35,7 +36,12 @@ import { url } from '../../../lib/nunjucks-filters/index.js';
  *   isPublishedQuery: boolean
  * } | null>}
  */
-export async function getExaminationLibrarySectionData(caseId, itemSlug, query = {}) {
+export async function getExaminationLibrarySectionData(
+	caseId,
+	itemSlug,
+	query = {},
+	prefetchedData = {}
+) {
 	const { sortBy, pageSize = 25, page = 1 } = query;
 	const pageNumber = Number(page) || 1;
 	const pageSizeNumber = Number(pageSize) || 25;
@@ -54,8 +60,10 @@ export async function getExaminationLibrarySectionData(caseId, itemSlug, query =
 	});
 
 	const [documentsResponse, categoriesResponse] = await Promise.all([
-		getExaminationLibraryDocumentsByCategory(caseId, sectionCategoryCode, queryString),
-		getExaminationLibraryCategories(caseId, { categoryCode: sectionCategoryCode }).catch(() => [])
+		prefetchedData.documentsResponse ||
+			getExaminationLibraryDocumentsByCategory(caseId, sectionCategoryCode, queryString),
+		prefetchedData.categoriesResponse ||
+			getExaminationLibraryCategories(caseId, { categoryCode: sectionCategoryCode }).catch(() => [])
 	]);
 
 	/** @type {ExaminationLibraryDocumentVersion[]} */

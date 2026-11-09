@@ -134,16 +134,11 @@ describe('applications examination library publish controller', () => {
 				.query((query) => query.categoryCode === 'APP')
 				.reply(200, [{ categoryCode: 'APP', publishedStatus: 'in progress' }]);
 
-			// Subsequent calls from getExaminationLibrarySectionData
+			// Subsequent call from getExaminationLibrarySectionData (categoriesResponse is reused)
 			nock('http://test/')
 				.get('/applications/123/examination-library/documents')
 				.query((query) => query.categoryCode === 'APP' && !query.publishedStatus)
 				.reply(200, mockAllDocs);
-
-			nock('http://test/')
-				.get('/applications/123/examination-library')
-				.query((query) => query.categoryCode === 'APP')
-				.reply(200, [{ categoryCode: 'APP', publishedStatus: 'in progress' }]);
 
 			await getExaminationLibraryPublish(req, res);
 
