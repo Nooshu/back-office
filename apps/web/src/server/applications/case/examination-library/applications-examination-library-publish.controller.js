@@ -14,6 +14,33 @@ import {
 import { buildQueryString } from '../../common/components/build-query-string.js';
 import { url } from '../../../lib/nunjucks-filters/index.js';
 
+const EMPTY_CATEGORY_ERROR =
+	'Examination library category does not contain any new published documents';
+
+/**
+ * Render the category section page with an error summary banner.
+ *
+ * @param {import('express').Response} response
+ * @param {any} sectionData
+ * @param {number} caseId
+ * @param {Record<string, any>} query
+ * @param {string} errors
+ * @returns {void}
+ */
+function renderSectionPageWithError(response, sectionData, caseId, query, errors) {
+	return response.render('applications/case-examination-library/examination-library-section.njk', {
+		...sectionData.sectionViewModel,
+		caseId,
+		publishUrl: sectionData.publishUrl,
+		pagination: getExaminationLibraryPagination(
+			query,
+			sectionData.documentsResponse,
+			sectionData.sectionUrl
+		),
+		errors
+	});
+}
+
 /**
  * @typedef {import('./applications-examination-library-utils.js').ExaminationLibraryDocumentVersion} ExaminationLibraryDocumentVersion
  */
@@ -73,19 +100,12 @@ export async function getExaminationLibraryPublish(request, response) {
 			return response.status(404).render('app/404');
 		}
 
-		return response.render(
-			'applications/case-examination-library/examination-library-section.njk',
-			{
-				...sectionData.sectionViewModel,
-				caseId: paramCaseId || caseId,
-				publishUrl: sectionData.publishUrl,
-				pagination: getExaminationLibraryPagination(
-					request.query,
-					sectionData.documentsResponse,
-					sectionData.sectionUrl
-				),
-				errors: 'Examination library category does not contain any new published documents'
-			}
+		return renderSectionPageWithError(
+			response,
+			sectionData,
+			caseId,
+			request.query,
+			EMPTY_CATEGORY_ERROR
 		);
 	}
 
@@ -147,20 +167,10 @@ export async function postExaminationLibraryPublish(request, response) {
 				return response.status(404).render('app/404');
 			}
 
-			return response.render(
-				'applications/case-examination-library/examination-library-section.njk',
-				{
-					...sectionData.sectionViewModel,
-					caseId,
-					publishUrl: sectionData.publishUrl,
-					pagination: getExaminationLibraryPagination(
-						request.query,
-						sectionData.documentsResponse,
-						sectionData.sectionUrl
-					),
-					errors: 'Examination library category does not contain any new published documents'
-				}
-			);
+			const errorMessage =
+				apiError?.response?.body?.errors || apiError?.message || EMPTY_CATEGORY_ERROR;
+
+			return renderSectionPageWithError(response, sectionData, caseId, request.query, errorMessage);
 		}
 		throw error;
 	}
