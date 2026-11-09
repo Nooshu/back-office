@@ -591,7 +591,7 @@ describe('Examination Library Routes', () => {
 
 			expect(response.status).toBe(400);
 			expect(response.body).toEqual({
-				errors: 'You cannot publish an examination library category with no published documents'
+				errors: 'Examination library category does not contain any new published documents'
 			});
 			expect(sendToQueue).not.toHaveBeenCalled();
 		});

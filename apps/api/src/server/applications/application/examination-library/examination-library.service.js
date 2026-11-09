@@ -167,7 +167,7 @@ export const publishExaminationLibraryCategory = async (caseId, categoryData) =>
 
 	if (!hasPublishedDocuments && !hasLockedDocuments) {
 		throw new BackOfficeAppError(
-			'You cannot publish an examination library category with no published documents',
+			'Examination library category does not contain any new published documents',
 			400
 		);
 	}
