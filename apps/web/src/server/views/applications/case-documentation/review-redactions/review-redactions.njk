@@ -82,7 +82,7 @@
 							text: "Redaction not needed, remove suggestions"
 						}
 					],
-					value: reviewDecision,
+					value: reviewDecision | default("ready"),
 					errorMessage: errors.reviewDecision | errorMessage
 				}) }}
 

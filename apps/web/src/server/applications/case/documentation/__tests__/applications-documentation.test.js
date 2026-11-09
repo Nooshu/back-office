@@ -839,6 +839,26 @@ describe('applications documentation', () => {
 				expect(element.innerHTML).toContain('or');
 			});
 
+			it('selects the "ready" option by default', async () => {
+				const response = await request.get(
+					`${baseUrl}/project-documentation/21/document/151/review-redactions`
+				);
+				const element = parseHtml(response.text);
+
+				/** @param {string} value */
+				const isChecked = (value) => {
+					const input = element.querySelector(`input[name="reviewDecision"][value="${value}"]`);
+					if (!input) {
+						throw new Error(`Missing review decision input: ${value}`);
+					}
+					return input.hasAttribute('checked');
+				};
+
+				expect(isChecked('ready')).toBe(true);
+				expect(isChecked('upload-new')).toBe(false);
+				expect(isChecked('not-needed')).toBe(false);
+			});
+
 			describe('POST /review-redactions', () => {
 				it('rejects request with missing reviewDecision', async () => {
 					const response = await request
