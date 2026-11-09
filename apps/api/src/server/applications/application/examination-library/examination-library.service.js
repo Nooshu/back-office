@@ -141,6 +141,13 @@ export const publishExaminationLibraryCategory = async (caseId, categoryData) =>
 		throw new Error(`Category not found for case ${caseId} and code ${categoryCode}`);
 	}
 
+	if (category.publishedStatus?.toLowerCase() === 'published') {
+		throw new BackOfficeAppError(
+			'Examination library category does not contain any new published documents',
+			400
+		);
+	}
+
 	const categoryDocuments = await examinationLibraryRepository.getDocuments(caseId, {
 		categoryCode
 	});

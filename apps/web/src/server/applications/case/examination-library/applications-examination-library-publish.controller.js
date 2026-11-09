@@ -93,8 +93,11 @@ export async function getExaminationLibraryPublish(request, response) {
 	const matchingCategory = categoriesResponse?.find((c) => c.categoryCode === sectionCategoryCode);
 	const categoryStatus = matchingCategory?.publishedStatus?.toLowerCase();
 
-	// Guard: in-progress category cannot be published if there are no published documents
-	if ((!categoryStatus || categoryStatus === 'in progress') && totalPublishedCount === 0) {
+	// category cannot be published if it is already published, or if in-progress with no published documents
+	if (
+		categoryStatus === 'published' ||
+		((!categoryStatus || categoryStatus === 'in progress') && totalPublishedCount === 0)
+	) {
 		const sectionData = await getExaminationLibrarySectionData(caseId, itemSlug, request.query, {
 			categoriesResponse
 		});

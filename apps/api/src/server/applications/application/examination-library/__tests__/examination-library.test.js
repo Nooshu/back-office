@@ -596,6 +596,26 @@ describe('Examination Library Routes', () => {
 			expect(sendToQueue).not.toHaveBeenCalled();
 		});
 
+		it('should return 400 when category is already published', async () => {
+			const mockCategory = {
+				id: 10,
+				categoryCode: 'APP',
+				categoryName: 'Application form',
+				publishedStatus: 'published'
+			};
+			databaseConnector.examinationLibraryCategory.findMany.mockResolvedValue([mockCategory]);
+
+			const response = await request
+				.post(`/applications/${caseId}/examination-library/publish`)
+				.send({ categoryCode: 'APP' });
+
+			expect(response.status).toBe(400);
+			expect(response.body).toEqual({
+				errors: 'Examination library category does not contain any new published documents'
+			});
+			expect(sendToQueue).not.toHaveBeenCalled();
+		});
+
 		it('should exclude unpublished and deleted documents from receiving EL references', async () => {
 			const mockCategory = { id: 10, categoryCode: 'APP', categoryName: 'Application form' };
 			const publishedDocGuid = '3e9b11df-5527-4a0b-9df0-7d0891d4d812';
