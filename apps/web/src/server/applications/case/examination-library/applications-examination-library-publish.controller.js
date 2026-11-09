@@ -1,8 +1,10 @@
 import {
+	getExaminationLibraryCategories,
 	getExaminationLibraryDocumentsByCategory,
 	publishExaminationLibraryCategory
 } from './applications-examination-library.service.js';
 import { getExaminationLibraryPublishViewModel } from './applications-examination-library-publish.view-model.js';
+import { getExaminationLibrarySectionData } from './applications-examination-library-section.controller.js';
 import { categoryCodes, examinationLibrarySections } from './examination-library.constants.js';
 import {
 	getSectionByItemSlug,
@@ -49,9 +51,10 @@ export async function getExaminationLibraryPublish(request, response) {
 		page: 1
 	});
 
-	const [publishedDocumentsResponse, allDocumentsResponse] = await Promise.all([
+	const [publishedDocumentsResponse, allDocumentsResponse, categoriesResponse] = await Promise.all([
 		getExaminationLibraryDocumentsByCategory(caseId, sectionCategoryCode, publishedQueryString),
-		getExaminationLibraryDocumentsByCategory(caseId, sectionCategoryCode, allQueryString)
+		getExaminationLibraryDocumentsByCategory(caseId, sectionCategoryCode, allQueryString),
+		getExaminationLibraryCategories(caseId, { categoryCode: sectionCategoryCode }).catch(() => [])
 	]);
 
 	/** @type {ExaminationLibraryDocumentVersion[]} */
@@ -59,6 +62,32 @@ export async function getExaminationLibraryPublish(request, response) {
 	const totalPublishedCount = publishedDocumentsResponse?.itemCount ?? 0;
 	const totalAllCount = allDocumentsResponse?.itemCount ?? 0;
 	const unpublishedCount = Math.max(0, totalAllCount - totalPublishedCount);
+
+	const matchingCategory = categoriesResponse?.find((c) => c.categoryCode === sectionCategoryCode);
+	const categoryStatus = matchingCategory?.publishedStatus?.toLowerCase();
+
+	// Guard: in-progress category cannot be published if there are no published documents
+	if ((!categoryStatus || categoryStatus === 'in progress') && totalPublishedCount === 0) {
+		const sectionData = await getExaminationLibrarySectionData(caseId, itemSlug, request.query);
+		if (!sectionData) {
+			return response.status(404).render('app/404');
+		}
+
+		return response.render(
+			'applications/case-examination-library/examination-library-section.njk',
+			{
+				...sectionData.sectionViewModel,
+				caseId: paramCaseId || caseId,
+				publishUrl: sectionData.publishUrl,
+				pagination: getExaminationLibraryPagination(
+					request.query,
+					sectionData.documentsResponse,
+					sectionData.sectionUrl
+				),
+				errors: 'Examination library category does not contain any new published documents'
+			}
+		);
+	}
 
 	const publishUrl = url('examination-library-publish', {
 		caseId,
@@ -108,7 +137,33 @@ export async function postExaminationLibraryPublish(request, response) {
 		return response.status(404).render('app/404');
 	}
 
-	await publishExaminationLibraryCategory(caseId, { categoryCode: sectionCategoryCode });
+	try {
+		await publishExaminationLibraryCategory(caseId, { categoryCode: sectionCategoryCode });
+	} catch (error) {
+		const apiError = /** @type {any} */ (error);
+		if (apiError?.response?.statusCode === 400 || apiError?.statusCode === 400) {
+			const sectionData = await getExaminationLibrarySectionData(caseId, itemSlug, request.query);
+			if (!sectionData) {
+				return response.status(404).render('app/404');
+			}
+
+			return response.render(
+				'applications/case-examination-library/examination-library-section.njk',
+				{
+					...sectionData.sectionViewModel,
+					caseId,
+					publishUrl: sectionData.publishUrl,
+					pagination: getExaminationLibraryPagination(
+						request.query,
+						sectionData.documentsResponse,
+						sectionData.sectionUrl
+					),
+					errors: 'Examination library category does not contain any new published documents'
+				}
+			);
+		}
+		throw error;
+	}
 
 	return response.redirect(
 		`${url('examination-library-section', { caseId, slug: itemSlug })}?published=true`
